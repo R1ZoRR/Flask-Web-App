@@ -1,0 +1,81 @@
+version: '3.7'
+
+secrets:
+  postgres_user:
+    file: ./secrets/postgres_user.txt
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  postgres_secret_key:
+    file: ./secrets/postgres_secret_key.txt
+
+services:
+  nginx:
+    restart: always
+    build: ./nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./web/static:/static
+    links:
+      - web:web
+
+  web:
+    restart: always
+    build: ./web
+    links:
+      - postgres:postgres
+    secrets:
+      - postgres_user
+      - postgres_password
+      - postgres_secret_key
+    environment:
+      DEBUG: True
+      POSTGRES_DB: db
+      DATABASE_PORT: 5432
+      POSTGRES_USER_FILE: /run/secrets/postgres_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_SECRET_KEY_FILE: /run/secrets/postgres_secret_key
+    expose:
+      - "8000"
+    depends_on:
+      - postgres
+    command: >
+      sh -c "python3 ./create_db.py &&
+             gunicorn -w 2 -b :8000 app:app"
+
+  postgres:
+    container_name: pg_container
+    restart: always
+    image: postgres:latest
+    volumes:
+      - db-data:/var/lib/postgresql
+    secrets:
+      - postgres_user
+      - postgres_password
+      - postgres_secret_key
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_USER_FILE: /run/secrets/postgres_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_SECRET_KEY_FILE: /run/secrets/postgres_secret_key
+    expose:
+      - "5432"
+
+  pgadmin:
+    restart: unless-stopped
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "warevelop2@gmail.com"
+      PGADMIN_DEFAULT_PASSWORD: "pgadminpwd"
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+
+    ports:
+      - "5050:80"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+
+volumes:
+  db-data:
