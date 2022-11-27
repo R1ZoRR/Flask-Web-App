@@ -1,6 +1,6 @@
-import sqlalchemy.exc
 from flask import Flask, request, render_template, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import exc
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from config import BaseConfig
@@ -86,7 +86,7 @@ def register():
             try:
                 db.session.commit()
                 return redirect(url_for('login_page'))
-            except sqlalchemy.exc.IntegrityError:
+            except exc.IntegrityError:
                 db.session.rollback()
                 flash('Login is already taken')
 
