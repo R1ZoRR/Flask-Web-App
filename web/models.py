@@ -11,9 +11,7 @@ class Message(db.Model):
     def __init__(self, from_id, text, tags):
         self.from_id = from_id
         self.text = text.strip()
-        self.tags = [
-            Tag(text=tag.strip()) for tag in tags.split(',')
-        ]
+        self.tags = [Tag(text=tag.strip()) for tag in tags.split(',')]
 
 
 class Tag(db.Model):
@@ -23,10 +21,18 @@ class Tag(db.Model):
     message = db.relationship('Message', backref=db.backref('tags', lazy=True))
 
 
-class User (db.Model, UserMixin):
+class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     login = db.Column(db.String(128), nullable=False, unique=True)
+    role = db.Column(db.Integer, nullable=False, unique=False)
+
+class User_passwords (db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
     password = db.Column(db.String(255), nullable=False)
+
+class User_roles (db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    role = db.Column(db.String(255), nullable=False, unique=True)
 
 
 @manager.user_loader

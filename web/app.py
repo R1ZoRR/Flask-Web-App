@@ -32,7 +32,6 @@ def redirect_register():
 def main():
     return render_template('main.html', messages=Message.query.filter_by(from_id = current_user.id))
 
-
 @app.route('/add_message', methods=['POST'])
 @login_required
 def add_message():
@@ -54,10 +53,9 @@ def login_page():
 
         if login and password:
             user = User.query.filter_by(login=login).first()
-
-            if user and check_password_hash(user.password, password):
+            hash_pwd = User_passwords.query.filter_by(id=user.id).first()
+            if user and check_password_hash(hash_pwd.password, password):
                 login_user(user)
-
                 return redirect(url_for('main'))
             else:
                 flash('Login or password is not correct')
@@ -81,8 +79,8 @@ def register():
             flash('Passwords are not equal!')
         else:
             hash_pwd = generate_password_hash(password)
-            new_user = User(login=login, password=hash_pwd)
-            db.session.add(new_user)
+            db.session.add(User(login=login, role=1))
+            db.session.add(User_passwords(password=hash_pwd))
             try:
                 db.session.commit()
                 return redirect(url_for('login_page'))
