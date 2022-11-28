@@ -4,6 +4,7 @@ from sqlalchemy import exc
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from config import BaseConfig
+import base64
 
 
 app = Flask(__name__)
@@ -13,7 +14,6 @@ db = SQLAlchemy(app)
 manager = LoginManager(app)
 
 from models import *
-
 
 @app.route('/', methods=['GET'])
 def index():
@@ -30,7 +30,18 @@ def redirect_register():
 @app.route('/main', methods=['GET'])
 @login_required
 def main():
-    return render_template('main.html', messages=Message.query.filter_by(from_id = current_user.id))
+    text = "SELECT user_roles.id AS user_roles_id, user_roles.role AS user_roles_role  " \
+           "FROM user_roles WHERE user_roles.id = "
+    text += str(current_user.role)
+    sql_query = db.session.execute(text).all()
+    user_role = sql_query
+    if user_role[0][1] == "user":
+        messages = Message.query.filter_by(from_id=current_user.id)
+    else:
+        messages = Message.query.all()
+    img = db.session.query(Data).first()
+    img = img.image.decode("UTF-8")
+    return render_template('main.html', messages=messages, image=img)
 
 @app.route('/add_message', methods=['POST'])
 @login_required
@@ -108,4 +119,4 @@ def redirect_to_signin(response):
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)

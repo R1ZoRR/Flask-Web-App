@@ -6,7 +6,7 @@
 </head>
 <body>
 {% if current_user.is_authenticated %}
-  Hi {{ current_user.login }}!
+  Hi, {{ current_user.login }}!
 {% endif %}
 <td><a href="{{ url_for('logout') }}">Logout</a></td>
 <h2>Messages</h2>
@@ -18,12 +18,15 @@
 
 <h3>Messages list</h3>
 {% for message in messages %}
-<div>{{ message.text }}&nbsp;
+<div><b>{{ message.created_at }}</b> {{ message.text }}&nbsp;
     {% for tag in message.tags %}
         <b>#{{ tag.text }}</b>
     {% endfor %}
 </div>
 {% endfor %}
+
+<img src="data:image/png;base64,{{ image }}" alt="kit"/>
+
 
 </body>
 </html>
