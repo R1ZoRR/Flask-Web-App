@@ -31,14 +31,15 @@ def redirect_register():
 @login_required
 def main():
     text = "SELECT user_roles.id AS user_roles_id, user_roles.role AS user_roles_role  " \
-           "FROM user_roles WHERE user_roles.id = "
-    text += str(current_user.role)
+           "FROM user_roles WHERE user_roles.id = " + str(current_user.role)
     sql_query = db.session.execute(text).all()
     user_role = sql_query
-    if user_role[0][1] == "user":
+    if user_role[0][1] == "admin" or user_role[0][1] == "moderator":
+        messages = Message.query.all()
+    elif user_role[0][1] == "user":
         messages = Message.query.filter_by(from_id=current_user.id)
     else:
-        messages = Message.query.all()
+        return redirect(url_for('logout'))
     img = db.session.query(Data).first()
     img = img.image.decode("UTF-8")
     return render_template('main.html', messages=messages, image=img)
@@ -91,7 +92,12 @@ def register():
         else:
             hash_pwd = generate_password_hash(password)
             db.session.add(User(login=login, role=1))
-            db.session.add(User_passwords(password=hash_pwd))
+            try:
+                db.session.commit()
+            except exc.IntegrityError:
+                db.session.rollback()
+            u_id = User.query.filter_by(login=login).first().id
+            db.session.add(User_passwords(password=hash_pwd, user_id=u_id))
             try:
                 db.session.commit()
                 return redirect(url_for('login_page'))

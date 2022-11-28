@@ -5,7 +5,7 @@ from flask_login import UserMixin
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    from_id = db.Column(db.Integer, nullable=False)
+    from_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     text = db.Column(db.String(1024), nullable=False)
     created_at = db.Column(db.Date)
 
@@ -26,11 +26,13 @@ class Tag(db.Model):
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     login = db.Column(db.String(128), nullable=False, unique=True)
-    role = db.Column(db.Integer, nullable=False, unique=False)
+    role = db.Column(db.Integer, db.ForeignKey('user_roles.id'), nullable=False, unique=False)
+    password = db.relationship('User_passwords', backref='user', uselist=False)
 
 class User_passwords(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     password = db.Column(db.String(1024), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
 class User_roles(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
