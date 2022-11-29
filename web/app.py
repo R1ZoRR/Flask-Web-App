@@ -42,11 +42,24 @@ def main():
         messages = Message.query.filter_by(from_id=current_user.id)
     else:
         return redirect(url_for("logout"))
-    app.logger.info(db.session.query(Data.image).filter_by(user_id=current_user.id).first())
     img = db.session.query(Data.image).filter_by(user_id=current_user.id).order_by(Data.id.desc()).first()
-    #img = db.session.query(Data.image).first()
     img = img.image.decode("UTF-8")
     return render_template('main.html', user_messages=messages, image=img)
+
+@app.route('/add_message', methods=['POST'])
+@login_required
+def add_message():
+    from_id = current_user.id
+    text = request.form['text']
+    tag = request.form['tag']
+
+    db.session.add(Message(from_id, text, tag))
+    try:
+        db.session.commit()
+    except exc.IntegrityError:
+        db.session.rollback()
+
+    return redirect(url_for('main'))
 
 @app.route('/upload', methods=['POST'])
 @login_required
@@ -75,17 +88,38 @@ def upload():
             app.logger.info("Not file provided")
     return redirect(url_for('main'))
 
-@app.route('/add_message', methods=['POST'])
+@app.route('/change_password', methods=['POST'])
 @login_required
-def add_message():
-    from_id = current_user.id
-    text = request.form['text']
-    tag = request.form['tag']
-
-    db.session.add(Message(from_id, text, tag))
-    db.session.commit()
+def change_password():
+    password = request.form.get('password')
+    new_password = request.form.get('new_password')
+    hash_pwd = User_passwords.query.filter_by(user_id=current_user.id).first()
+    if check_password_hash(hash_pwd.password, password):
+        table_password = User_passwords.query.filter_by(user_id=current_user.id).first()
+        table_password.password = generate_password_hash(new_password)
+    try:
+        db.session.commit()
+    except exc.IntegrityError:
+        db.session.rollback()
 
     return redirect(url_for('main'))
+
+@app.route('/delete_user', methods=['POST'])
+@login_required
+def delete_user():
+    user_info = User.query.filter_by(id=current_user.id).first()
+    user_pass = User_passwords.query.filter_by(user_id=current_user.id).first()
+    user_data = Data.query.filter_by(user_id=current_user.id).first()
+    db.session.delete(user_info)
+    db.session.delete(user_pass)
+    db.session.delete(user_data)
+    try:
+        db.session.commit()
+    except exc.IntegrityError:
+        db.session.rollback()
+    logout_user()
+    return redirect(url_for('main'))
+
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -95,13 +129,17 @@ def login_page():
         password = request.form.get('password')
 
         if login and password:
-            user = User.query.filter_by(login=login).first()
-            hash_pwd = User_passwords.query.filter_by(user_id=user.id).first()
-            if user and check_password_hash(hash_pwd.password, password):
-                login_user(user)
-                return redirect(url_for('main'))
+            lookup = User.query.filter_by(login=login).first()
+            if not lookup:
+                flash('User not exist')
             else:
-                flash('Login or password is not correct')
+                user = User.query.filter_by(login=login).first()
+                hash_pwd = User_passwords.query.filter_by(user_id=user.id).first()
+                if user and check_password_hash(hash_pwd.password, password):
+                    login_user(user)
+                    return redirect(url_for('main'))
+                else:
+                    flash('Login or password is not correct')
         else:
             flash('Please fill login and password fields')
 
@@ -133,7 +171,6 @@ def register():
             except exc.IntegrityError:
                 db.session.rollback()
                 flash('Login is already taken')
-            #app.logger.info(db.session.query(Data.image).first()[0])
             data = db.session.query(Data.image).first()[0]
             db.session.add(Data(image=data, user_id=u_id))
             try:
@@ -145,13 +182,11 @@ def register():
     logout_user()
     return render_template('register.html')
 
-
 @app.route('/logout', methods=['GET', 'POST'])
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('index'))
-
 
 @app.after_request
 def redirect_to_signin(response):
@@ -162,4 +197,4 @@ def redirect_to_signin(response):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)

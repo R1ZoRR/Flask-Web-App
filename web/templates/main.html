@@ -5,9 +5,9 @@
     <title>Main page</title>
 </head>
 <body>
-{% if current_user.is_authenticated %}
-  Hi, {{ current_user.login }}!
-{% endif %}
+
+Hi, {{ current_user.login }}!
+
 <td><a href="{{ url_for('logout') }}">Logout</a></td>
 <h2>Messages</h2>
 <form method="post" action="/add_message" enctype=multipart/form-data>
@@ -40,6 +40,34 @@
 <form method="POST" action="/upload" enctype='multipart/form-data'>
     <input type="file" name="file">
     <input type="submit" value="Submit">
+</form>
+
+<br>
+<div>Change password</div>
+<form method="POST" action="/change_password">
+    <table>
+        <tr>
+            <td>Current Password</td>
+            <td><input type="password" name="password"></td>
+        </tr>
+        <tr>
+            <td>New Password</td>
+            <td><input type="password" name="new_password"></td>
+        </tr>
+        <tr>
+            <td><input type="submit" value="Change password"></td>
+        </tr>
+    </table>
+</form>
+
+<div>Delete user</div>
+<form method="POST" action="/delete_user">
+    <table>
+        <tr>
+            <td>Are you sure?</td>
+            <td><input type="submit" value="Delete user"></td>
+        </tr>
+    </table>
 </form>
 
 </body>
