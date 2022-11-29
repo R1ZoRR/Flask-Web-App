@@ -2,9 +2,11 @@ from flask import Flask, request, render_template, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exc
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import  generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from config import BaseConfig
 import base64
+import os
 
 
 app = Flask(__name__)
@@ -39,10 +41,39 @@ def main():
     elif user_role[0][1] == "user":
         messages = Message.query.filter_by(from_id=current_user.id)
     else:
-        return redirect(url_for('logout'))
-    img = db.session.query(Data).first()
+        return redirect(url_for("logout"))
+    app.logger.info(db.session.query(Data.image).filter_by(user_id=current_user.id).first())
+    img = db.session.query(Data.image).filter_by(user_id=current_user.id).order_by(Data.id.desc()).first()
+    #img = db.session.query(Data.image).first()
     img = img.image.decode("UTF-8")
-    return render_template('main.html', messages=messages, image=img)
+    return render_template('main.html', user_messages=messages, image=img)
+
+@app.route('/upload', methods=['POST'])
+@login_required
+def upload():
+    if 'file' not in request.files:
+        app.logger.info("No file")
+    else:
+        file = request.files["file"]
+        f_extension = os.path.splitext(file.filename)[1].lower()
+        if file:
+            if f_extension not in set([".jpg", ".jpeg", ".png", ".gif"]):
+                app.logger.info('Not allowed extension for file')
+            else:
+                f_name = secure_filename(file.filename) or ""
+                data = file.read()
+                data = base64.b64encode(data)
+                edit_data = db.session.query(Data).filter_by(user_id=current_user.id).first()
+                edit_data.image = data
+                edit_data.filename = f_name
+                try:
+                    db.session.commit()
+                    app.logger.info('Uploaded: ' + f_name)
+                except exc.IntegrityError:
+                    db.session.rollback()
+        else:
+            app.logger.info("Not file provided")
+    return redirect(url_for('main'))
 
 @app.route('/add_message', methods=['POST'])
 @login_required
@@ -65,7 +96,7 @@ def login_page():
 
         if login and password:
             user = User.query.filter_by(login=login).first()
-            hash_pwd = User_passwords.query.filter_by(id=user.id).first()
+            hash_pwd = User_passwords.query.filter_by(user_id=user.id).first()
             if user and check_password_hash(hash_pwd.password, password):
                 login_user(user)
                 return redirect(url_for('main'))
@@ -76,7 +107,6 @@ def login_page():
 
         return render_template('login.html')
     return redirect(url_for('main'))
-
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -100,12 +130,19 @@ def register():
             db.session.add(User_passwords(password=hash_pwd, user_id=u_id))
             try:
                 db.session.commit()
-                return redirect(url_for('login_page'))
             except exc.IntegrityError:
                 db.session.rollback()
                 flash('Login is already taken')
+            #app.logger.info(db.session.query(Data.image).first()[0])
+            data = db.session.query(Data.image).first()[0]
+            db.session.add(Data(image=data, user_id=u_id))
+            try:
+                db.session.commit()
+                return redirect(url_for('login_page'))
+            except exc.IntegrityError:
+                db.session.rollback()
 
-
+    logout_user()
     return render_template('register.html')
 
 

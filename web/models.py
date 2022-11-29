@@ -28,6 +28,7 @@ class User(db.Model, UserMixin):
     login = db.Column(db.String(128), nullable=False, unique=True)
     role = db.Column(db.Integer, db.ForeignKey('user_roles.id'), nullable=False, unique=False)
     password = db.relationship('User_passwords', backref='user', uselist=False)
+    data = db.relationship('Data', backref='user', uselist=False)
 
 class User_passwords(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -41,6 +42,8 @@ class User_roles(db.Model, UserMixin):
 class Data(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     image = db.Column(db.LargeBinary, nullable=False)
+    filename = db.Column(db.String(128))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
 
 @manager.user_loader

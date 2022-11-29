@@ -10,14 +10,14 @@
 {% endif %}
 <td><a href="{{ url_for('logout') }}">Logout</a></td>
 <h2>Messages</h2>
-<form method="post" action="/add_message">
+<form method="post" action="/add_message" enctype=multipart/form-data>
     <input type="text" name="text">
     <input type="text" name="tag">
     <button type="submit">Add message</button>
 </form>
 
 <h3>Messages list</h3>
-{% for message in messages %}
+{% for message in user_messages %}
 <div><b>{{ message.created_at }}</b> {{ message.text }}&nbsp;
     {% for tag in message.tags %}
         <b>#{{ tag.text }}</b>
@@ -27,6 +27,20 @@
 
 <img src="data:image/png;base64,{{ image }}" alt="kit"/>
 
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul class=flashes>
+    {% for message in messages %}
+      <li>{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<form method="POST" action="/upload" enctype='multipart/form-data'>
+    <input type="file" name="file">
+    <input type="submit" value="Submit">
+</form>
 
 </body>
 </html>
